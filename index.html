@@ -5,6 +5,9 @@
   <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.css">
   <link rel="stylesheet" href="css/main.css">
 
+
+  <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase.js"></script>
+
   <!-- Angular Material requires Angular.js Libraries -->
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-route.js"></script>
@@ -15,13 +18,22 @@
   <!-- Angular Material Library -->
   <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.js"></script>
   
-  <script src="https://www.gstatic.com/firebasejs/3.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/3.6.1/firebase-database.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.6.2/firebase-messaging.js"></script>
+
+
 
   <!-- Your application  -->
   <script src="ts_output_readonly_do_NOT_change_manually/src/log.js"></script>
   <script src="ts_output_readonly_do_NOT_change_manually/src/messageSender.js"></script>
   <script src="ts_output_readonly_do_NOT_change_manually/src/main.js"></script>
+
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
 
 
   <!-- Tile icon for Win8 -->
@@ -35,7 +47,7 @@
 
   <!-- App Styling -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
-  <link rel="stylesheet" href="styles/main.css">
+
   
 
 <script type="text/ng-template" id="html-templates/playPage.html">
@@ -71,7 +83,7 @@
   
   <div ng-view class="full_screen"></div> 
   <div ng-show="main.showGameIframe()" id="game_container">
-    <iframe id="game_iframe" src="https://yoav-zibin.github.io/smpgWEIQI/index.html" seamless="seamless"></iframe>
+    <iframe id="game_iframe" src="https://qdm12.github.io/Chess_2016/index.html" seamless="seamless"></iframe>
   </div>
    <main class="mdl-layout__content mdl-color--grey-100">
     <div id="messages-card-container" class="mdl-cell mdl-cell--12-col mdl-grid">
@@ -80,7 +92,7 @@
     <header class="mdl-layout__header mdl-color-text--white mdl-color--light-blue-700">
     <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
       <div class="mdl-layout__header-row mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--12-col-desktop">
-        <h3><i class="material-icons">chat_bubble_outline</i> Friendly Chat</h3>
+        <h3><i class="material-icons">chat_bubble_outline</i> Game Chat</h3>
       </div>
       <div id="user-container">
         <div hidden id="user-pic"></div>
@@ -128,4 +140,6 @@
   </main>
   
 </body>
+
+
 </html>
