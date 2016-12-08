@@ -37,30 +37,14 @@ interface IProposals {
   [playerId: string]: IProposal;
 }
 
-interface MyPlayerInfo extends IPlayerInfo {
-  myCommunityPlayerIndex: number;
-}
-
 interface ICommunityMatch extends IStateTransition {
   matchName: string;
   playerIdToProposal: IProposals; 
 }
-
-interface ICommunityChat {
-  messageList:any;
-  messageForm:any;
-  messageInput:any;
-  submitButton:any;
-  submitImageButton:any;
-  imageForm:any;
-  mediaCapture:any; 
-  userPic:any;
-  userName:any;
-  signInButton:any;
-  signOutButton:any;
-  signInSnackbar:any;
+interface ChatMsg {
+  chat: string;
+  fromPlayer: IPlayerInfo;
 }
-
 
 export let $rootScope: angular.IScope;
 export let $location: angular.ILocationService;
@@ -74,10 +58,10 @@ export let $route: angular.route.IRouteService;
 declare var firebase: any;
 
 export module main {
-  // Feel free to change to your own Firebase URL :)
+  // TODO: change to your own Firebase URL! To avoid messing up the data for other students.
   // Initialize Firebase
-var config = {
-    apiKey: "AIzaSyCUw1qMmgowubEhDQ6AzkK2zBjORf591do",
+  var config = {
+   apiKey: "AIzaSyCUw1qMmgowubEhDQ6AzkK2zBjORf591do",
     authDomain: "chess-chat-f38c0.firebaseapp.com",
     databaseURL: "https://chess-chat-f38c0.firebaseio.com",
     storageBucket: "chess-chat-f38c0.appspot.com",
@@ -88,12 +72,12 @@ var config = {
   // Saving as json because firebase has restriction on keys (and we use "data: any").
   // Example error: Firebase.set failed: First argument  contains an invalid key (playerId0.5446834512026781) in property 'matches.0.playerIdToProposal'.  Keys must be non-empty strings and can't contain ".", "#", "$", "/", "[", or "]"
   // Another weird thing: For some reason firebase stores "{}" as null (for playerIdToProposal).
-  
-  let matchesRef = firebase.database().ref("matchesJson");
+  // Some teams corrupted the data, so I changed the ref name.
+  let matchesRef = firebase.database().ref("matchesJson5");
   matchesRef.on('value', function(snapshot: any) {
     $timeout(()=> {
       let matchesJson = snapshot.val();
-      console.log(matchesJson);
+      log.info("matchesJson=", matchesJson);
       if (!matchesJson) {
         matches = createCommunityMatches(); 
         storeMatches();
@@ -104,52 +88,35 @@ var config = {
     });
   });
 
-  export let communityChat: ICommunityChat = getChatData();
-  export let myPlayerInfo: MyPlayerInfo = getMyPlayerInfo();
-  log.alwaysLog("myPlayerInfo=", myPlayerInfo);
+  export let indexToChatMsgs: ChatMsg[][] = [];
+  let chatRef = firebase.database().ref("indexToChatMsgs");
+  chatRef.on('value', function(snapshot: any) {
+    $timeout(()=> {
+      indexToChatMsgs = snapshot.val();
+      log.info("indexToChatMsgs=", indexToChatMsgs);
+      if (!indexToChatMsgs) indexToChatMsgs = [];
+    });
+  });
 
-  function getMyPlayerInfo() {
-    let myPlayerInfoJson = localStorage.getItem("myPlayerInfoJson");
-    if (myPlayerInfoJson) return angular.fromJson(myPlayerInfoJson);
-    myPlayerInfo = {
-      avatarImageUrl: "http://graph.facebook.com/10154287448416125/picture?square=square",
-      displayName: "Guest player " + (1+Math.floor(999*Math.random())),
-      myCommunityPlayerIndex: 
-        location.search.indexOf('playBlack') != -1 ? 0 :
+  export function getChatMsgs() {
+    return indexToChatMsgs[currentMatchIndex] ? indexToChatMsgs[currentMatchIndex] : [];
+  }
+
+  export let myCommunityPlayerIndex = location.search.indexOf('playBlack') != -1 ? 0 :
         location.search.indexOf('playWhite') != -1 ? 1 : 
-        Math.random() > 0.5 ? 0 : 1,
-      playerId: "playerId" + Math.floor(1000000*Math.random()),
-    };
-    localStorage.setItem("myPlayerInfoJson", angular.toJson(myPlayerInfo));
-    return myPlayerInfo;
-  }
+        Math.random() > 0.5 ? 0 : 1;
 
-
-
-  function getChatData() {
-    communityChat = {
-      messageList: document.getElementById('messages'),
-      messageForm: document.getElementById('message-form'),
-      messageInput: document.getElementById('message'),
-      submitButton: document.getElementById('submit'),
-      submitImageButton: document.getElementById('submitImage'),
-      imageForm: document.getElementById('image-form'),
-      mediaCapture: document.getElementById('mediaCapture'),
-      userPic: document.getElementById('user-pic'),
-      userName: document.getElementById('user-name'),
-      signInButton: document.getElementById('sign-in'),
-      signOutButton: document.getElementById('sign-out'),
-      signInSnackbar: document.getElementById('must-signin-snackbar'),
-    };
-
-
-
-    return communityChat;
-  }
-
+  export let myPlayerInfo: IPlayerInfo = location.protocol == "file:" ? {
+    avatarImageUrl: "http://graph.facebook.com/10154287448416125/picture?square=square",
+    displayName:"Test player " + Math.floor(1000*Math.random()),
+    playerId: "playerId" + Math.random()
+  }: null;
 
   function storeMatches() {
     matchesRef.set(angular.toJson(matches));
+  }
+  function storeChat() {
+    chatRef.set(indexToChatMsgs);
   }
 
   function createCommunityMatches(): ICommunityMatch[] {
@@ -157,7 +124,7 @@ var config = {
       createCommunityMatch("Greendale"),
       createCommunityMatch("Walla Walla"),
       createCommunityMatch("Santa Barbara"),
-      createCommunityMatch("Valencia")
+      createCommunityMatch("Valencia"),
     ];
   }
   function createCommunityMatch(matchName: string): ICommunityMatch {
@@ -203,16 +170,40 @@ var config = {
   export function gotoPlayPage(matchIndex: number) {
     changePage('/playGame/' + matchIndex);
   }
+  export function gotoMainPage() {
+    changePage('/main');
+  }
+  
+  export let chatMessage = "";
+  export function sendChat() {
+    addChatMsg({chat: chatMessage, fromPlayer: myPlayerInfo});
+    chatMessage = "";
+  }
+  function addChatMsg(chatMsg: ChatMsg) {
+    if (!indexToChatMsgs[currentMatchIndex]) indexToChatMsgs[currentMatchIndex] = [];
+    let chatMsgs = indexToChatMsgs[currentMatchIndex]; 
+    chatMsgs.unshift(chatMsg);
+    if (chatMsgs.length > 100) chatMsgs.pop();
+    storeChat();
+  }
+
+  export let isChatShowing = false;
+  export function toggleChat() {
+    isChatShowing = !isChatShowing;
+  }
   
   export function isYourTurn(match: ICommunityMatch) {
-    return match.move.turnIndexAfterMove == myPlayerInfo.myCommunityPlayerIndex &&
+    return match.move.turnIndexAfterMove == myCommunityPlayerIndex &&
         !match.playerIdToProposal[myPlayerInfo.playerId];
   }
 
   let currentMatchIndex: number = null;
+  export function getCurrentMatch() {
+    return matches[currentMatchIndex];
+  }
   export function loadMatch(matchIndex: number) {
     let match = matches[matchIndex];
-    if (!match) {
+    if (!match || !myPlayerInfo) {
       log.warn("Couldn't find matchIndex=", matchIndex);
       changePage('/main');
       return;
@@ -225,7 +216,7 @@ var config = {
   function sendCommunityUI() {
     let match = matches[currentMatchIndex];
     let communityUI: ICommunityUI = {
-      yourPlayerIndex: myPlayerInfo.myCommunityPlayerIndex,
+      yourPlayerIndex: myCommunityPlayerIndex,
       yourPlayerInfo: myPlayerInfo,
       playerIdToProposal: match.playerIdToProposal,
       numberOfPlayers: match.numberOfPlayers,
@@ -237,9 +228,6 @@ var config = {
     lastCommunityUI = communityUI;
     messageSender.sendToGame({communityUI: communityUI});
   }
-
-
-
 
   window.addEventListener("message", function (event) {
     let game_iframe: HTMLIFrameElement = <HTMLIFrameElement>window.document.getElementById("game_iframe");
@@ -273,8 +261,9 @@ var config = {
       let proposal: IProposal = communityMove.proposal;
       let move: IMove = communityMove.move;
 
-      let match = matches[currentMatchIndex];      
-      // TODO: add proposal.chatDescription + proposal.playerInfo (avatar+displayName) to the group chat.
+      let match = matches[currentMatchIndex];
+      let chatMsg:ChatMsg = {chat: "Played the move: " + proposal.chatDescription, fromPlayer: proposal.playerInfo};
+      addChatMsg(chatMsg);
       if (move) {
         match.turnIndexBeforeMove = match.move.turnIndexAfterMove;
         match.stateBeforeMove = match.move.stateAfterMove;
@@ -286,6 +275,32 @@ var config = {
       storeMatches();
       sendCommunityUI();
     });
+  });
+
+  export function googleLogin() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/plus.login');
+    firebase.auth().signInWithPopup(provider).then(function(result: any) {
+      // This gives you a Google Access Token. You can use it to access the Google API.
+      var token = result.credential.accessToken;
+      // The signed-in user info.
+      var user = result.user;
+      log.info("Google login succeeded: ", token, user);
+    }).catch(function(error: any) {
+      log.error("Google login failed: ", error);
+    });
+  }
+
+  firebase.auth().onAuthStateChanged(function(user: any) {
+    if (!user) return;
+    // User is signed in.
+    myPlayerInfo = {
+      avatarImageUrl: user.photoURL,
+      displayName: user.displayName,
+      playerId: user.uid,
+    };
+    log.alwaysLog("myPlayerInfo=", myPlayerInfo);
+    if ($rootScope) $rootScope.$apply();
   });
 
   angular.module('MyApp', ['ngMaterial', 'ngRoute'])
